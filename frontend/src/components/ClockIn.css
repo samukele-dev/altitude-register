@@ -1,0 +1,233 @@
+.clockin-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--primary-900) 0%, var(--primary-800) 50%, var(--primary-900) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+}
+
+.clockin-grid {
+  max-width: 1200px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-6);
+}
+
+/* Main Card */
+.clockin-card {
+  background: white;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.clockin-header {
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+  padding: var(--spacing-8) var(--spacing-6);
+  text-align: center;
+}
+
+.clockin-header h1 {
+  color: white;
+  font-size: 1.875rem;
+  margin-bottom: var(--spacing-2);
+}
+
+.clockin-header p {
+  color: var(--primary-100);
+}
+
+.clockin-content {
+  padding: var(--spacing-8);
+}
+
+.clockin-time {
+  text-align: center;
+  margin-bottom: var(--spacing-8);
+}
+
+.clockin-time .time {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  font-family: monospace;
+  margin-bottom: var(--spacing-2);
+}
+
+.clockin-time .date {
+  font-size: 1.125rem;
+  color: var(--gray-600);
+}
+
+.welcome-message {
+  background-color: var(--green-50);
+  border: 1px solid var(--green-200);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.welcome-message p {
+  color: var(--green-700);
+  font-weight: 500;
+  font-size: 1.125rem;
+}
+
+.clockin-button {
+  width: 100%;
+  padding: var(--spacing-8);
+  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+  border: none;
+  border-radius: var(--radius-xl);
+  color: white;
+  font-weight: 700;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-lg);
+}
+
+.clockin-button:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-xl);
+}
+
+.clockin-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.clockin-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.button-icon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.clockin-footer {
+  background-color: var(--gray-50);
+  padding: var(--spacing-3) var(--spacing-6);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  border-top: 1px solid var(--gray-200);
+}
+
+/* Live Status Card */
+.live-status-card {
+  background: white;
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+}
+
+.live-status-header {
+  background: var(--primary-600);
+  padding: var(--spacing-4) var(--spacing-6);
+}
+
+.live-status-header h2 {
+  color: white;
+  font-size: 1.25rem;
+  margin-bottom: var(--spacing-1);
+}
+
+.live-status-header p {
+  color: var(--primary-100);
+  font-size: 0.875rem;
+}
+
+.live-status-content {
+  padding: var(--spacing-6);
+}
+
+.total-count {
+  text-align: center;
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.total-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--primary-600);
+}
+
+.total-label {
+  color: var(--gray-500);
+  font-size: 0.875rem;
+}
+
+.campaign-stats {
+  margin-bottom: var(--spacing-6);
+}
+
+.campaign-stats h3 {
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: var(--spacing-3);
+}
+
+.campaign-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-2) 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.campaign-name {
+  color: var(--gray-600);
+}
+
+.campaign-count {
+  font-weight: 600;
+  color: var(--primary-600);
+}
+
+.scanner-status {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: var(--green-500);
+  border-radius: 50%;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.status-text {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+@media (max-width: 768px) {
+  .clockin-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .clockin-time .time {
+    font-size: 2rem;
+  }
+}
