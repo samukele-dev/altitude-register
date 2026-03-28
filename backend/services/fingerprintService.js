@@ -74,7 +74,7 @@ class FingerprintService {
         return {
           success: false,
           error: 'Timeout',
-          message: 'No fingerprint detected. Please place your finger on the scanner.'
+          message: 'No fingerprint detected on the system. Please place your finger on the scanner.'
         };
       } else if (response.data && response.data.captureStatus === 'NoReader') {
         // Scanner disconnected - try to reconnect
