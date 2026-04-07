@@ -35,17 +35,18 @@ const ClockIn = () => {
     }
   };
 
-  const handleClockInOut = async () => {
+  const handleClockIn = async () => {
     setCapturing(true);
     setWelcomeMessage('');
     
     try {
-      toast.info('Please place your finger on the scanner...', {
+      toast('Please place your finger on the scanner...', {
         duration: 2000,
         icon: '👆'
       });
       
-      const fingerprint = await fingerprintService.captureFingerprint();
+      // Use quick capture for clock-in (1 scan only)
+      const fingerprint = await fingerprintService.quickCaptureForClockIn();
       
       if (!fingerprint.success) {
         toast.error(fingerprint.message);
@@ -62,7 +63,7 @@ const ClockIn = () => {
         setWelcomeMessage(response.data.message);
         toast.success(response.data.message, {
           duration: 5000,
-          icon: response.data.data.status === 'clocked_in' ? '👋' : '👋'
+          icon: '👋'
         });
         
         await fetchLiveStatus();
@@ -72,12 +73,13 @@ const ClockIn = () => {
         }, 5000);
       }
     } catch (error) {
-      console.error('Clock in/out error:', error);
-      toast.error(error.response?.data?.message || 'Failed to process. Please try again.');
+      console.error('Clock-in error:', error);
+      toast.error(error.response?.data?.message || 'Failed to clock in. Please try again.');
     } finally {
       setCapturing(false);
     }
   };
+
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
@@ -119,7 +121,7 @@ const ClockIn = () => {
             )}
             
             <button
-              onClick={handleClockInOut}
+              onClick={handleClockIn}
               disabled={capturing}
               className="clockin-button"
             >
@@ -133,14 +135,14 @@ const ClockIn = () => {
                   <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  <span>Scan Fingerprint to Clock In/Out</span>
+                  <span>Scan Fingerprint to Clock In</span>
                 </div>
               )}
             </button>
             
             <div className="mt-3 text-center">
               <p className="text-sm text-gray-500">Place your finger on the HID DigitalPersona 5300 scanner</p>
-              <p className="text-xs text-gray-400 mt-1">The system will automatically detect clock in or clock out</p>
+              <p className="text-xs text-gray-400 mt-1">You can only clock in once per day</p>
             </div>
           </div>
           

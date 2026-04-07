@@ -16,11 +16,11 @@ const Layout = ({ children }) => {
   };
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: '📊', roles: ['admin', 'team_leader', 'agent'] },
-    { name: 'Clock In', href: '/', icon: '⏰', roles: ['admin', 'team_leader', 'agent'] },
-    { name: 'Enroll Employee', href: '/enroll', icon: '👤', roles: ['admin'] },
-    { name: 'Employees', href: '/employees', icon: '👥', roles: ['admin', 'team_leader'] },
-    { name: 'Reports', href: '/reports', icon: '📈', roles: ['admin', 'team_leader'] },
+    { name: 'Dashboard', href: '/dashboard', roles: ['admin', 'team_leader', 'agent'] },
+    { name: 'Clock In', href: '/', roles: ['admin', 'team_leader', 'agent'] },
+    { name: 'Enroll Employee', href: '/enroll', roles: ['admin'] },
+    { name: 'Employees', href: '/employees', roles: ['admin', 'team_leader'] },
+    { name: 'Reports', href: '/reports', roles: ['admin', 'team_leader'] },
   ];
 
   const filteredNav = navigation.filter(item => {
@@ -36,7 +36,7 @@ const Layout = ({ children }) => {
         <div className="navbar-container">
           <div className="navbar-brand">
             <Link to="/" className="brand-text">
-              <span className="brand-altitude">Altitude</span>
+              <span className="brand-altitude">Altitude BPO </span>
               <span className="brand-register">Register</span>
             </Link>
           </div>

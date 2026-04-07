@@ -10,7 +10,7 @@ const EnrollmentForm = () => {
   const [loading, setLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [fingerprintData, setFingerprintData] = useState(null);
-  const [scanProgress, setScanProgress] = useState({ current: 0, total: 5, quality: 0, status: 'idle' });
+  const [scanProgress, setScanProgress] = useState({ current: 0, total: 3, quality: 0, status: 'idle' });
   const [campaigns, setCampaigns] = useState([]);
   const [teams, setTeams] = useState([]);
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -31,6 +31,22 @@ const EnrollmentForm = () => {
 
   useEffect(() => {
     loadDropdownData();
+    
+    // IMPORTANT: Set up progress callback for real-time updates
+    fingerprintService.setProgressCallback((progress) => {
+      console.log('📊 Progress update received:', progress);
+      setScanProgress({
+        current: progress.current,
+        total: progress.total,
+        quality: progress.quality,
+        status: progress.status
+      });
+    });
+    
+    // Cleanup callback on unmount
+    return () => {
+      fingerprintService.setProgressCallback(null);
+    };
   }, []);
 
   const loadDropdownData = async () => {
@@ -92,9 +108,9 @@ const EnrollmentForm = () => {
 
   const captureFingerprint = async () => {
     setCapturing(true);
-    setScanProgress({ current: 0, total: 5, quality: 0, status: 'scanning' });
+    setScanProgress({ current: 0, total: 3, quality: 0, status: 'scanning' });
     
-    toast('Please place your finger on the scanner. We will capture 5 scans.', {
+    toast('Please place your finger on the scanner. We will capture 3 scans.', {
       duration: 3000,
       icon: '🖐️'
     });
@@ -112,20 +128,27 @@ const EnrollmentForm = () => {
         
         setScanProgress({
           current: result.scans,
-          total: 5,
+          total: 3,
           quality: result.quality,
           status: 'complete'
         });
         
         toast.success(result.message);
       } else {
-        toast.error(result.message || 'Failed to capture fingerprint');
-        setScanProgress({ current: 0, total: 5, quality: 0, status: 'error' });
+        // Check if it's a scanner disconnect error
+        if (result.error === 'NoReader' || result.message.includes('disconnected')) {
+          toast.error('Scanner disconnected. Please check USB connection and try again.', {
+            duration: 5000
+          });
+        } else {
+          toast.error(result.message || 'Failed to capture fingerprint');
+        }
+        setScanProgress({ current: 0, total: 3, quality: 0, status: 'error' });
       }
     } catch (error) {
       toast.error('Error capturing fingerprint. Please ensure scanner is connected.');
       console.error(error);
-      setScanProgress({ current: 0, total: 5, quality: 0, status: 'error' });
+      setScanProgress({ current: 0, total: 3, quality: 0, status: 'error' });
     } finally {
       setCapturing(false);
     }
@@ -174,7 +197,7 @@ const EnrollmentForm = () => {
           team: '',
         });
         setFingerprintData(null);
-        setScanProgress({ current: 0, total: 5, quality: 0, status: 'idle' });
+        setScanProgress({ current: 0, total: 3, quality: 0, status: 'idle' });
         setShowNewCampaign(false);
         setShowNewTeam(false);
         setNewCampaignName('');
@@ -201,7 +224,7 @@ const EnrollmentForm = () => {
           <div className="header-icon">👤</div>
           <h1>Employee Enrollment</h1>
           <p>Register new employee with biometric fingerprint</p>
-          <div className="badge">5 scans required for best accuracy</div>
+          <div className="badge">3 scans required for best accuracy</div>
         </div>
         
         <form onSubmit={handleSubmit} className="enrollment-form">
@@ -348,7 +371,7 @@ const EnrollmentForm = () => {
                 <div className="fingerprint-placeholder">
                   <div className="fingerprint-icon">🖐️</div>
                   <p>No fingerprint captured yet</p>
-                  <small>5 scans required for best accuracy</small>
+                  <small>3 scans required for best accuracy</small>
                 </div>
               ) : (
                 <div className="fingerprint-success-card">
@@ -356,7 +379,7 @@ const EnrollmentForm = () => {
                   <div className="success-details">
                     <strong>Fingerprint Captured</strong>
                     <span>Quality: {fingerprintData.quality}%</span>
-                    <span>Scans: {fingerprintData.scans}/5 successful</span>
+                    <span>Scans: {fingerprintData.scans}/3 successful</span>
                   </div>
                 </div>
               )}
@@ -376,7 +399,11 @@ const EnrollmentForm = () => {
                   </div>
                   <div className="scan-info">
                     <span className="scan-count">Scan {scanProgress.current} of {scanProgress.total}</span>
-                    <div className="scan-status">Place finger on scanner...</div>
+                    <div className="scan-status">
+                      {scanProgress.status === 'scanning' ? 'Place finger on scanner...' : 
+                       scanProgress.status === 'success' ? `Quality: ${scanProgress.quality}%` : 
+                       'Processing...'}
+                    </div>
                   </div>
                 </div>
               )}
@@ -391,7 +418,7 @@ const EnrollmentForm = () => {
               {capturing ? (
                 <>
                   <span className="spinner"></span>
-                  Capturing...
+                  Capturing... ({scanProgress.current}/3)
                 </>
               ) : fingerprintData ? (
                 <>
@@ -401,7 +428,7 @@ const EnrollmentForm = () => {
               ) : (
                 <>
                   <span>🖐️</span>
-                  Start Fingerprint Capture (5 scans)
+                  Start Fingerprint Capture (3 scans)
                 </>
               )}
             </button>

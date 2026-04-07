@@ -6,13 +6,16 @@ class FingerprintService {
     this.deviceModel = 'HID DigitalPersona 5300';
     this.backendUrl = 'http://localhost:5000/api/fingerprint';
     this.scans = [];
+    this.onProgress = null;
+  }
+
+  setProgressCallback(callback) {
+    this.onProgress = callback;
   }
 
   async initialize() {
     try {
-      console.log('🔍 Initializing fingerprint service...');
       const response = await axios.get(`${this.backendUrl}/status`, { timeout: 3000 });
-      console.log('📡 Status response:', response.data);
       if (response.data && response.data.connected) {
         this.isConnected = true;
         console.log('✅ Fingerprint scanner connected');
@@ -26,39 +29,63 @@ class FingerprintService {
     }
   }
 
-  async captureSingleScan() {
-    try {
-      console.log('📱 Capturing single fingerprint scan...');
-      const response = await axios.post(`${this.backendUrl}/capture-single`, {}, {
-        timeout: 100000
-      });
-      
-      console.log('📡 Capture response:', response.data);
-      
-      if (response.data.success) {
-        return {
-          success: true,
-          template: response.data.template,
-          hash: response.data.hash,
-          quality: response.data.quality
-        };
+  async captureSingleFingerprint(scanNumber) {
+    const maxRetries = 2;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Send progress at start of scan
+        if (this.onProgress) {
+          this.onProgress({ 
+            current: scanNumber - 1, 
+            total: 3, 
+            quality: 0, 
+            status: 'scanning',
+            message: `Starting scan ${scanNumber}...`
+          });
+        }
+        
+        const response = await axios.post(`${this.backendUrl}/capture-single`, {}, {
+          timeout: 15000
+        });
+        
+        if (response.data.success) {
+          return response.data;
+        }
+        
+        // If it's a scanner disconnect, wait and retry
+        if (response.data.error === 'NoReader' && attempt < maxRetries) {
+          console.log(`⚠️ Scanner disconnected, retrying scan ${scanNumber} (attempt ${attempt + 1})...`);
+          if (this.onProgress) {
+            this.onProgress({ 
+              current: scanNumber - 1, 
+              total: 3, 
+              quality: 0, 
+              status: 'scanning',
+              message: `Reconnecting scanner... Retry ${attempt + 1}`
+            });
+          }
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        
+        throw new Error(response.data.message);
+      } catch (error) {
+        if (attempt === maxRetries) {
+          return { success: false, error: error.message };
+        }
+        await new Promise(r => setTimeout(r, 1000));
       }
-      throw new Error(response.data.message);
-    } catch (error) {
-      console.error('❌ Single scan failed:', error.message);
-      return {
-        success: false,
-        error: error.message
-      };
     }
+    
+    return { success: false, error: 'Max retries exceeded' };
   }
 
   async captureFingerprint() {
     try {
-      console.log('🖐️ Starting fingerprint capture process...');
+      console.log('🖐️ Starting multi-scan fingerprint capture for enrollment...');
       
       if (!this.isConnected) {
-        console.log('Not connected, initializing...');
         await this.initialize();
       }
       
@@ -70,32 +97,51 @@ class FingerprintService {
       let bestScan = null;
       let highestQuality = 0;
       
-      // Capture 5 scans
-      for (let i = 1; i <= 5; i++) {
-        console.log(`📱 Scan ${i}/5...`);
+      for (let i = 1; i <= 3; i++) {
+        console.log(`📱 Scan ${i}/3...`);
         
-        const result = await this.captureSingleScan();
+        const result = await this.captureSingleFingerprint(i);
         
         if (result.success) {
           this.scans.push(result);
-          console.log(`   ✅ Quality: ${result.quality}%`);
           if (result.quality > highestQuality) {
             highestQuality = result.quality;
             bestScan = result;
           }
+          console.log(`   ✅ Quality: ${result.quality}%`);
+          
+          // Send progress update after successful scan
+          if (this.onProgress) {
+            this.onProgress({ 
+              current: i, 
+              total: 3, 
+              quality: result.quality, 
+              status: 'success',
+              message: `Scan ${i} complete! Quality: ${result.quality}%`
+            });
+          }
         } else {
           console.log(`   ❌ Failed: ${result.error}`);
+          
+          if (this.onProgress) {
+            this.onProgress({ 
+              current: i - 1, 
+              total: 3, 
+              quality: 0, 
+              status: 'error',
+              message: `Scan ${i} failed. Please try again.`
+            });
+          }
         }
         
-        // Small delay between scans
-        if (i < 5) await new Promise(r => setTimeout(r, 800));
+        if (i < 5) await new Promise(r => setTimeout(r, 1000));
       }
       
       if (!bestScan) {
-        throw new Error('No successful fingerprint captures');
+        throw new Error(`No successful captures (${this.scans.length}/5)`);
       }
       
-      console.log(`✅ Capture complete! Best quality: ${highestQuality}%`);
+      console.log(`✅ Best quality: ${highestQuality}% (${this.scans.length}/5 successful)`);
       
       return {
         success: true,
@@ -103,12 +149,34 @@ class FingerprintService {
         hash: bestScan.hash,
         quality: highestQuality,
         scans: this.scans.length,
-        allScans: this.scans,
-        message: `Fingerprint captured! Best quality: ${highestQuality}%`
+        message: `Fingerprint captured! Quality: ${highestQuality}%`
       };
       
     } catch (error) {
-      console.error('❌ Fingerprint capture failed:', error.message);
+      console.error('❌ Capture failed:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        message: 'Failed to capture fingerprint. Please try again.'
+      };
+    }
+  }
+
+  async quickCaptureForClockIn() {
+    try {
+      if (!this.isConnected) {
+        await this.initialize();
+      }
+      
+      const response = await axios.post(`${this.backendUrl}/capture-single`, {}, {
+        timeout: 15000
+      });
+      
+      if (response.data.success) {
+        return response.data;
+      }
+      throw new Error(response.data.message);
+    } catch (error) {
       return {
         success: false,
         error: error.message,

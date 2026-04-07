@@ -68,7 +68,7 @@ export const employeeService = {
 
 // Clock services
 export const clockService = {
-  clockInOut: (fingerprintData) => api.post('/clock/clock', fingerprintData),
+  clockInOut: (fingerprintData) => api.post('/clock', fingerprintData),
   getTodayStatus: () => api.get('/clock/today'),
   getLiveStatus: () => api.get('/clock/live'),
   getAttendance: (params) => api.get('/clock/attendance', { params }),

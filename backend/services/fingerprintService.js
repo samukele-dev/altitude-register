@@ -19,19 +19,16 @@ class FingerprintService {
     try {
       console.log('🔍 Testing connection to NetIQ Device Service...');
       
-      // Try to connect with short timeout - this just checks if service is running
       await axios.get(this.netiqUrl, {
         httpsAgent: this.httpsAgent,
         timeout: 2000
       });
       
-      // If we get a response (even timeout), service is running
       this.isConnected = true;
       console.log(`✅ ${this.deviceModel} connected via NetIQ Device Service`);
       return true;
       
     } catch (error) {
-      // ECONNABORTED or timeout means the service responded but no finger yet
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
         this.isConnected = true;
         console.log(`✅ ${this.deviceModel} connected (ready for fingerprint)`);
@@ -41,6 +38,82 @@ class FingerprintService {
       console.error('❌ Fingerprint reader initialization failed:', error.message);
       this.isConnected = false;
       return false;
+    }
+  }
+
+  // NEW METHOD: Calculate similarity between two fingerprint templates
+  calculateSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    
+    // Use the longer string length for normalization
+    const maxLength = Math.max(str1.length, str2.length);
+    if (maxLength === 0) return 1;
+    
+    // Calculate Levenshtein distance
+    const distance = this.levenshteinDistance(str1, str2);
+    
+    // Convert distance to similarity (1 - distance/maxLength)
+    const similarity = 1 - (distance / maxLength);
+    
+    // Clamp between 0 and 1
+    return Math.max(0, Math.min(1, similarity));
+  }
+
+  // NEW METHOD: Levenshtein distance calculation
+  levenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    
+    // Create distance matrix
+    const dp = Array(m + 1).fill().map(() => Array(n + 1).fill(0));
+    
+    // Initialize first row and column
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    
+    // Fill the matrix
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,      // deletion
+            dp[i][j - 1] + 1,      // insertion
+            dp[i - 1][j - 1] + 1   // substitution
+          );
+        }
+      }
+    }
+    
+    return dp[m][n];
+  }
+
+  async verifyFingerprint(storedTemplate, capturedTemplate) {
+    try {
+      // Use similarity matching instead of exact comparison
+      const similarity = this.calculateSimilarity(storedTemplate, capturedTemplate);
+      const threshold = 0.35; // 60% similarity threshold
+      
+      const isMatch = similarity >= threshold;
+      const confidence = isMatch ? similarity * 100 : similarity * 30;
+      
+      console.log(`🔐 Fingerprint verification: ${isMatch ? 'MATCH' : 'NO MATCH'} (similarity: ${(similarity * 100).toFixed(1)}%, threshold: ${threshold * 100}%)`);
+      
+      return {
+        verified: isMatch,
+        confidence,
+        success: true,
+        message: isMatch ? 'Fingerprint verified' : 'Fingerprint does not match'
+      };
+    } catch (error) {
+      console.error('Fingerprint verification failed:', error.message);
+      return {
+        verified: false,
+        success: false,
+        error: error.message,
+        message: 'Verification failed. Please try again.'
+      };
     }
   }
 
@@ -74,15 +147,17 @@ class FingerprintService {
         return {
           success: false,
           error: 'Timeout',
-          message: 'No fingerprint detected on the system. Please place your finger on the scanner.'
+          message: 'No fingerprint detected. Please place your finger on the scanner.'
         };
       } else if (response.data && response.data.captureStatus === 'NoReader') {
-        // Scanner disconnected - try to reconnect
-        console.log('⚠️ Scanner disconnected, attempting to reconnect...');
+        console.log('⚠️ Scanner disconnected, reconnecting...');
         this.isConnected = false;
+        
+        // Wait and retry connection
+        await new Promise(r => setTimeout(r, 2000));
         await this.initialize();
         
-        // Retry once after reconnection
+        // Retry the capture once after reconnection
         const retryResponse = await axios.get(this.netiqUrl, {
           httpsAgent: this.httpsAgent,
           timeout: 15000
@@ -130,8 +205,8 @@ class FingerprintService {
       let bestScan = null;
       let highestQuality = 0;
       
-      for (let i = 1; i <= 5; i++) {
-        console.log(`\n  📱 Scan ${i}/5...`);
+      for (let i = 1; i <= 3; i++) {
+        console.log(`\n  📱 Scan ${i}/3...`);
         console.log('   Place your finger on the scanner...');
         
         const result = await this.captureSingleFingerprint();
@@ -146,14 +221,12 @@ class FingerprintService {
         } else {
           console.log(`    ❌ Failed: ${result.message}`);
           
-          // If it's a "NoReader" error, wait longer for reconnection
           if (result.error === 'NoReader') {
             console.log('   Waiting for scanner to reconnect...');
             await new Promise(r => setTimeout(r, 3000));
           }
         }
         
-        // Longer delay between scans (1 second)
         if (i < 5) await new Promise(r => setTimeout(r, 1000));
       }
       

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  clockInOut,
+  clockIn,
   getTodayStatus,
   getLiveStatus,
   getEmployeeAttendance
@@ -9,8 +9,8 @@ const {
 const { protect } = require('../middleware/auth');
 const { validateClockIn } = require('../middleware/validation');
 
-// Public route for clock in/out (no auth required, uses fingerprint)
-router.post('/clock', validateClockIn, clockInOut);
+// Public route for clock in (no auth required, uses fingerprint)
+router.post('/', validateClockIn, clockIn);
 
 // Protected routes
 router.get('/today', protect, getTodayStatus);
