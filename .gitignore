@@ -1,0 +1,16 @@
+# NEVER commit these files!
+*.key
+*.pem
+*.p12
+serviceAccountKey.json
+*.env
+.env.*
+!.env.example
+
+# Firebase
+firebase-debug.log
+.firebase/
+
+# Node
+node_modules/
+npm-debug.log*
