@@ -1,3 +1,22 @@
+# Backend
+backend/node_modules/
+backend/serviceAccountKey.json
+backend/.env
+backend/reports/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
 # NEVER commit these files!
 *.key
 *.pem
