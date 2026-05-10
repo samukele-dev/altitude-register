@@ -5,10 +5,14 @@ import { clockService } from '../services/api';
 import './ClockIn.css';
 
 const ClockIn = () => {
-  const [capturing, setCapturing] = useState(false);
+  const [step, setStep] = useState('id'); // 'id', 'fingerprint'
+  const [employeeId, setEmployeeId] = useState('');
+  const [employeeName, setEmployeeName] = useState('');
+  const [processing, setProcessing] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const [liveStatus, setLiveStatus] = useState({ totalClockedIn: 0, byCampaign: {} });
+  const [scannerStatus, setScannerStatus] = useState('ready');
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -35,51 +39,91 @@ const ClockIn = () => {
     }
   };
 
-  const handleClockIn = async () => {
-    setCapturing(true);
-    setWelcomeMessage('');
+  const handleIdSubmit = async (e) => {
+    e.preventDefault();
+    if (!employeeId.trim()) {
+      toast.error('Please enter your employee ID');
+      return;
+    }
+    
+    setProcessing(true);
     
     try {
-      toast('Please place your finger on the scanner...', {
-        duration: 2000,
-        icon: '👆'
-      });
+      const response = await clockService.verifyEmployeeId(employeeId);
       
-      // Use quick capture for clock-in (1 scan only)
+      if (response.data.success) {
+        setEmployeeName(`${response.data.employee.firstName} ${response.data.employee.lastName}`);
+        setStep('fingerprint');
+        toast.success(`Welcome ${response.data.employee.firstName}! Please place your finger on the scanner.`, {
+          duration: 3000,
+          icon: '👆'
+        });
+        // Automatically start fingerprint capture
+        await captureAndVerify(response.data.employee);
+      } else {
+        toast.error('Employee ID not found. Please try again.');
+      }
+    } catch (error) {
+      toast.error('Error verifying employee ID');
+      console.error(error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const captureAndVerify = async (employee) => {
+    setScannerStatus('scanning');
+    
+    try {
+      // Capture fingerprint (this will wait for finger)
+      toast('Place your finger on the scanner...', { duration: 2000, icon: '👆' });
+      
       const fingerprint = await fingerprintService.quickCaptureForClockIn();
       
       if (!fingerprint.success) {
         toast.error(fingerprint.message);
-        setCapturing(false);
+        setScannerStatus('ready');
+        setStep('id');
+        setEmployeeId('');
         return;
       }
       
-      const response = await clockService.clockInOut({
+      // Verify fingerprint matches
+      setScannerStatus('processing');
+      
+      const response = await clockService.verifyFingerprint({
+        employeeId: employee.employeeId,
         fingerprintHash: fingerprint.hash,
         fingerprintTemplate: fingerprint.template
       });
       
       if (response.data.success) {
         setWelcomeMessage(response.data.message);
-        toast.success(response.data.message, {
-          duration: 5000,
-          icon: '👋'
-        });
-        
+        toast.success(response.data.message, { duration: 5000, icon: '👋' });
         await fetchLiveStatus();
         
+        // Reset after 5 seconds
         setTimeout(() => {
           setWelcomeMessage('');
+          setStep('id');
+          setEmployeeId('');
+          setEmployeeName('');
+          setScannerStatus('ready');
         }, 5000);
+      } else {
+        toast.error(response.data.message || 'Fingerprint does not match');
+        setScannerStatus('ready');
+        setStep('id');
+        setEmployeeId('');
       }
     } catch (error) {
       console.error('Clock-in error:', error);
-      toast.error(error.response?.data?.message || 'Failed to clock in. Please try again.');
-    } finally {
-      setCapturing(false);
+      toast.error(error.response?.data?.message || 'Failed to clock in');
+      setScannerStatus('ready');
+      setStep('id');
+      setEmployeeId('');
     }
   };
-
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', {
@@ -98,10 +142,17 @@ const ClockIn = () => {
     });
   };
 
+  const handleReset = () => {
+    setStep('id');
+    setEmployeeId('');
+    setEmployeeName('');
+    setWelcomeMessage('');
+    setScannerStatus('ready');
+  };
+
   return (
     <div className="clockin-container">
       <div className="clockin-grid">
-        {/* Main Clock In Card */}
         <div className="clockin-card">
           <div className="clockin-header">
             <h1>Altitude Register System</h1>
@@ -120,29 +171,68 @@ const ClockIn = () => {
               </div>
             )}
             
-            <button
-              onClick={handleClockIn}
-              disabled={capturing}
-              className="clockin-button"
-            >
-              {capturing ? (
-                <div className="button-content">
-                  <div className="spinner"></div>
-                  <span>Processing...</span>
+            {step === 'id' ? (
+              <form onSubmit={handleIdSubmit} className="id-form">
+                <div className="form-group">
+                  <label className="form-label">Enter Employee ID</label>
+                  <input
+                    type="text"
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
+                    placeholder="e.g., Emp02, test01, Emp001"
+                    className="id-input"
+                    autoFocus
+                    disabled={processing}
+                  />
                 </div>
-              ) : (
-                <div className="button-content">
-                  <svg className="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>Scan Fingerprint to Clock In</span>
+                <button 
+                  type="submit" 
+                  disabled={processing}
+                  className="clockin-button"
+                >
+                  {processing ? (
+                    <div className="button-content">
+                      <div className="spinner"></div>
+                      <span>Verifying...</span>
+                    </div>
+                  ) : (
+                    <div className="button-content">
+                      <span>Continue</span>
+                    </div>
+                  )}
+                </button>
+                <p className="help-text">Enter your employee ID to begin</p>
+              </form>
+            ) : (
+              <div className="fingerprint-section">
+                <div className="scanner-status-container">
+                  <div className={`scanner-indicator ${scannerStatus}`}>
+                    <span className="indicator-dot"></span>
+                    <span className="indicator-text">
+                      {scannerStatus === 'ready' && 'Ready - Place Finger'}
+                      {scannerStatus === 'scanning' && 'Scanning Fingerprint...'}
+                      {scannerStatus === 'processing' && 'Verifying...'}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </button>
+                <div className="employee-info">
+                  <p>Verifying fingerprint for:</p>
+                  <strong>{employeeName || employeeId}</strong>
+                </div>
+                <div className="mt-3 text-center">
+                  <p className="text-sm text-gray-500">Place your finger on the scanner</p>
+                </div>
+                <button 
+                  onClick={handleReset}
+                  className="reset-btn"
+                >
+                  ← Back to ID Entry
+                </button>
+              </div>
+            )}
             
-            <div className="mt-3 text-center">
-              <p className="text-sm text-gray-500">Place your finger on the HID DigitalPersona 5300 scanner</p>
-              <p className="text-xs text-gray-400 mt-1">You can only clock in once per day</p>
+            <div className="clockin-footer-note">
+              <p className="text-xs text-gray-400">You can only clock in once per day</p>
             </div>
           </div>
           
@@ -151,7 +241,6 @@ const ClockIn = () => {
           </div>
         </div>
         
-        {/* Live Status Card */}
         <div className="live-status-card">
           <div className="live-status-header">
             <h2>Live Status</h2>
@@ -176,9 +265,11 @@ const ClockIn = () => {
               </div>
             )}
             
-            <div className="scanner-status">
-              <div className="status-dot"></div>
-              <span className="status-text">Scanner Ready</span>
+            <div className="scanner-status-footer">
+              <div className={`footer-dot ${scannerStatus === 'ready' ? 'ready' : 'active'}`}></div>
+              <span className="status-text">
+                {step === 'id' ? 'Ready for ID entry' : 'Waiting for fingerprint'}
+              </span>
             </div>
           </div>
         </div>

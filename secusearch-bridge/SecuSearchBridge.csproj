@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PlatformTarget>x64</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Tell the compiler about SecuGen.SecuSearchSDK3 namespace -->
+  <ItemGroup>
+    <Reference Include="SecuSearchAPI.Net">
+      <HintPath>SecuSearchAPI.Net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Copy DLLs to output folder on every build -->
+  <!-- Only include files that actually exist in your project folder -->
+  <ItemGroup>
+    <None Update="SecuSearchAPI.Net.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="secusearchapi.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <!-- secusearchapi32.dll removed – not present in your folder.         -->
+    <!-- SecuSearchAPI.Net.dll will auto-load the 64-bit secusearchapi.dll -->
+    <!-- since your PlatformTarget is x64.                                 -->
+  </ItemGroup>
+</Project>

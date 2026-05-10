@@ -1,5 +1,5 @@
 const ExcelJS = require('exceljs');
-const { db, storage, admin } = require('../config/firebase');
+const { db, admin } = require('../config/firebase');
 const emailService = require('../services/emailService');
 const { format } = require('date-fns');
 
@@ -182,46 +182,14 @@ const generateDailyReport = async (req, res) => {
 
     // Generate buffer
     const buffer = await workbook.xlsx.writeBuffer();
-    
-    // Upload to Firebase Storage
-    const fileName = `reports/attendance_${dateStr}.xlsx`;
-    const file = storage.bucket().file(fileName);
-    await file.save(buffer, {
-      metadata: {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      }
-    });
-    
-    const fileUrl = `https://storage.googleapis.com/${storage.bucket().name}/${fileName}`;
 
-    // Save report metadata
-    const timestamp = admin ? admin.firestore.FieldValue.serverTimestamp() : new Date();
-    await db.collection('daily_reports').doc(dateStr).set({
-      date: dateStr,
-      totalClockedIn,
-      totalEmployees: usersQuery.size,
-      attendanceRate: totalClockedIn / usersQuery.size,
-      byCampaign,
-      byTeam,
-      reportFileUrl: fileUrl,
-      generatedAt: timestamp
-    }, { merge: true });
+    // SEND FILE DIRECTLY - NO STORAGE NEEDED!
+    const fileName = `attendance_${dateStr}.xlsx`;
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(buffer);
 
-    res.json({
-      success: true,
-      message: 'Report generated successfully',
-      data: {
-        fileUrl,
-        fileName,
-        stats: {
-          totalClockedIn,
-          totalEmployees: usersQuery.size,
-          attendanceRate: ((totalClockedIn / usersQuery.size) * 100).toFixed(1),
-          campaigns: Object.keys(groupedData).length,
-          date: dateStr
-        }
-      }
-    });
   } catch (error) {
     console.error('Report generation error:', error);
     res.status(500).json({
@@ -232,27 +200,37 @@ const generateDailyReport = async (req, res) => {
   }
 };
 
+// Add the missing getReportHistory function
 const getReportHistory = async (req, res) => {
   try {
     const { limit = 30 } = req.query;
     
-    const snapshot = await db.collection('daily_reports')
-      .orderBy('date', 'desc')
-      .limit(parseInt(limit))
-      .get();
-    
-    const reports = [];
-    snapshot.forEach(doc => {
-      reports.push({
-        id: doc.id,
-        ...doc.data()
+    // If you have a reports collection in Firestore
+    try {
+      const snapshot = await db.collection('daily_reports')
+        .orderBy('date', 'desc')
+        .limit(parseInt(limit))
+        .get();
+      
+      const reports = [];
+      snapshot.forEach(doc => {
+        reports.push({
+          id: doc.id,
+          ...doc.data()
+        });
       });
-    });
-    
-    res.json({
-      success: true,
-      data: reports
-    });
+      
+      res.json({
+        success: true,
+        data: reports
+      });
+    } catch (error) {
+      // If no reports collection exists yet, return empty array
+      res.json({
+        success: true,
+        data: []
+      });
+    }
   } catch (error) {
     console.error('Get report history error:', error);
     res.json({ success: true, data: [] });
@@ -263,12 +241,7 @@ const getCampaigns = async (req, res) => {
   try {
     console.log('📁 Fetching campaigns...');
     
-    // Disable caching
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
-    // Get ALL campaigns - don't use where filter that might fail
+    // Remove the isActive filter - get ALL campaigns
     const snapshot = await db.collection('campaigns').get();
     
     const campaigns = [];
@@ -279,7 +252,7 @@ const getCampaigns = async (req, res) => {
         name: data.name || doc.id,
         description: data.description || '',
         agentCount: data.agentCount || 0,
-        isActive: data.isActive !== false,
+        isActive: data.isActive !== false,  // Default to true if missing
         createdAt: data.createdAt || new Date()
       });
     });
@@ -292,7 +265,6 @@ const getCampaigns = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Get campaigns error:', error.message);
-    // Return empty array
     res.json({ success: true, data: [] });
   }
 };
@@ -302,15 +274,15 @@ const getTeams = async (req, res) => {
     const { campaign } = req.query;
     console.log('📁 Fetching teams...', campaign ? `for campaign: ${campaign}` : 'all');
     
-    // Disable caching
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    // Remove the isActive filter - get ALL teams
+    let query = db.collection('teams');
+    if (campaign && campaign !== 'undefined' && campaign !== 'null') {
+      query = query.where('campaign', '==', campaign);
+    }
     
-    // Get ALL teams first
-    let snapshot = await db.collection('teams').get();
+    const snapshot = await query.get();
     
-    let teams = [];
+    const teams = [];
     snapshot.forEach(doc => {
       const data = doc.data();
       teams.push({
@@ -322,11 +294,6 @@ const getTeams = async (req, res) => {
         createdAt: data.createdAt || new Date()
       });
     });
-    
-    // Filter by campaign if specified
-    if (campaign && campaign !== 'undefined' && campaign !== 'null') {
-      teams = teams.filter(team => team.campaign === campaign);
-    }
     
     console.log(`✅ Found ${teams.length} teams:`, teams.map(t => t.name));
     
@@ -340,9 +307,112 @@ const getTeams = async (req, res) => {
   }
 };
 
+// Email function for sending reports
+const sendEmailReport = async (req, res) => {
+  try {
+    const { recipients, date, message: customMessage } = req.body;
+    const dateStr = date || format(new Date(), 'yyyy-MM-dd');
+    
+    // Generate the report first
+    const reportBuffer = await generateReportBuffer(dateStr);
+    
+    if (!reportBuffer) {
+      return res.status(404).json({
+        success: false,
+        message: 'Could not generate report for this date'
+      });
+    }
+    
+    const fileName = `attendance_${dateStr}.xlsx`;
+    
+    // Send email
+    const result = await emailService.sendDailyReport(
+      recipients, 
+      { totalClockedIn: 0, totalEmployees: 0, attendanceRate: 0, byCampaign: {} },
+      reportBuffer, 
+      fileName
+    );
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Report sent successfully',
+        recipients: recipients.length
+      });
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    console.error('Email sending error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send email',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to generate report buffer
+async function generateReportBuffer(dateStr) {
+  try {
+    const date = new Date(dateStr);
+    
+    const attendanceQuery = await db.collection('attendance')
+      .where('date', '==', dateStr)
+      .get();
+    
+    const usersQuery = await db.collection('users')
+      .where('isActive', '==', true)
+      .get();
+    
+    const users = {};
+    usersQuery.forEach(doc => {
+      users[doc.id] = doc.data();
+    });
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Altitude_Report_${dateStr}`);
+    
+    worksheet.columns = [
+      { header: 'Campaign', key: 'campaign', width: 20 },
+      { header: 'Team', key: 'team', width: 20 },
+      { header: 'Employee ID', key: 'employeeId', width: 15 },
+      { header: 'Employee Name', key: 'name', width: 25 },
+      { header: 'Clock In', key: 'clockIn', width: 20 },
+      { header: 'Clock Out', key: 'clockOut', width: 20 },
+      { header: 'Status', key: 'status', width: 15 }
+    ];
+    
+    let row = 2;
+    for (const doc of attendanceQuery.docs) {
+      const attendance = doc.data();
+      const user = users[attendance.userId];
+      
+      if (user) {
+        worksheet.addRow({
+          campaign: user.campaign || 'Unassigned',
+          team: user.team || 'Unassigned',
+          employeeId: user.employeeId,
+          name: `${user.firstName} ${user.lastName}`,
+          clockIn: attendance.clockInTime ? new Date(attendance.clockInTime).toLocaleTimeString() : 'N/A',
+          clockOut: attendance.clockOutTime ? new Date(attendance.clockOutTime).toLocaleTimeString() : 'Not clocked out',
+          status: attendance.status === 'clocked_in' ? 'Clocked In' : 'Clocked Out'
+        });
+        row++;
+      }
+    }
+    
+    return await workbook.xlsx.writeBuffer();
+  } catch (error) {
+    console.error('Error generating report buffer:', error);
+    return null;
+  }
+}
+
 module.exports = {
   generateDailyReport,
   getReportHistory,
   getCampaigns,
-  getTeams
+  getTeams,
+  sendEmailReport
 };

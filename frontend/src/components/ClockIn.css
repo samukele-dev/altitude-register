@@ -199,6 +199,102 @@
   color: var(--primary-600);
 }
 
+
+/* Scanner Status Container */
+.scanner-status-container {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.scanner-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  transition: all 0.3s ease;
+}
+
+.scanner-indicator.ready {
+  background: #dcfce7;
+}
+
+.scanner-indicator.ready .indicator-dot {
+  background: #22c55e;
+  animation: pulse 2s infinite;
+}
+
+.scanner-indicator.scanning {
+  background: #fef3c7;
+}
+
+.scanner-indicator.scanning .indicator-dot {
+  background: #f59e0b;
+  animation: pulse 0.5s infinite;
+}
+
+.scanner-indicator.processing {
+  background: #e0e7ff;
+}
+
+.scanner-indicator.processing .indicator-dot {
+  background: #4f46e5;
+  animation: spin 1s linear infinite;
+}
+
+.indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.indicator-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1f2937;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.scanner-status-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.footer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.footer-dot.ready {
+  background: #22c55e;
+  animation: pulse 2s infinite;
+}
+
+.footer-dot.active {
+  background: #f59e0b;
+  animation: pulse 0.5s infinite;
+}
+
+
 .scanner-status {
   margin-top: var(--spacing-4);
   padding-top: var(--spacing-4);
@@ -221,6 +317,79 @@
   font-size: 0.75rem;
   color: var(--gray-500);
 }
+
+.id-form {
+  margin: 2rem 0;
+}
+
+.id-input {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1.25rem;
+  text-align: center;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  letter-spacing: 2px;
+}
+
+.id-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+}
+
+.help-text {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 1rem;
+}
+
+.fingerprint-section {
+  text-align: center;
+  padding: 2rem;
+}
+
+.employee-info {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+}
+
+.employee-info p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.employee-info strong {
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.clockin-footer-note {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+
+.reset-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
 
 @media (max-width: 768px) {
   .clockin-grid {

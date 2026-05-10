@@ -29,18 +29,32 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle response errors
+// Handle response errors - Auto logout on 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Token expired or invalid
+      console.log('🔐 Session expired. Logging out...');
+      
+      // Clear local storage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      
+      // Show message
+      toast.error('Your session has expired. Please log in again.', {
+        duration: 3000,
+        icon: '🔐'
+      });
+      
+      // Redirect to login page
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
+
+
 
 // Auth services
 export const authService = {
@@ -72,15 +86,23 @@ export const clockService = {
   getTodayStatus: () => api.get('/clock/today'),
   getLiveStatus: () => api.get('/clock/live'),
   getAttendance: (params) => api.get('/clock/attendance', { params }),
+  verifyEmployeeId: (employeeId) => api.post('/clock/verify-employee-id', { employeeId }),
+  verifyFingerprint: (data) => api.post('/clock/verify-fingerprint', data)
 };
+
 
 // Report services
 export const reportService = {
-  generateDaily: (date) => api.get('/reports/generate', { params: { date } }),
+  generateDaily: (date) => api.get('/reports/generate', { 
+    params: { date },
+    responseType: 'blob'  // Important for file download
+  }),
   getHistory: (limit) => api.get('/reports/history', { params: { limit } }),
   getCampaigns: () => api.get('/reports/campaigns'),
   getTeams: (campaign) => api.get('/reports/teams', { params: { campaign } }),
+  sendEmail: (data) => api.post('/reports/send-email', data)
 };
+
 
 export { db, auth, storage };
 export default api;

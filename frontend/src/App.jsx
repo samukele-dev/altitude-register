@@ -10,6 +10,10 @@ import EnrollmentForm from './components/EnrollmentForm';
 import Login from './components/Login';
 import AdminDashboard from './components/AdminDashboard';
 import Layout from './components/Layout';
+import Employees from './components/Employees';
+import Reports from './components/Reports';
+import SessionWarning from './components/SessionWarning';
+
 
 // Protected Route Component - WITH LAYOUT HERE
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -89,13 +93,13 @@ function App() {
           
           <Route path="/employees" element={
             <ProtectedRoute allowedRoles={['admin', 'team_leader']}>
-              <AdminDashboard />
+              <Employees />
             </ProtectedRoute>
           } />
           
           <Route path="/reports" element={
             <ProtectedRoute allowedRoles={['admin', 'team_leader']}>
-              <AdminDashboard />
+              <Reports />
             </ProtectedRoute>
           } />
           
@@ -103,6 +107,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
+      <SessionWarning />
     </QueryClientProvider>
   );
 }

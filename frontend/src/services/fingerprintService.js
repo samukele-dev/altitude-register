@@ -30,55 +30,34 @@ class FingerprintService {
   }
 
   async captureSingleFingerprint(scanNumber) {
-    const maxRetries = 2;
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Send progress at start of scan
-        if (this.onProgress) {
-          this.onProgress({ 
-            current: scanNumber - 1, 
-            total: 3, 
-            quality: 0, 
-            status: 'scanning',
-            message: `Starting scan ${scanNumber}...`
-          });
-        }
-        
-        const response = await axios.post(`${this.backendUrl}/capture-single`, {}, {
-          timeout: 15000
+    try {
+      // Send progress at start of scan
+      if (this.onProgress) {
+        this.onProgress({ 
+          current: scanNumber - 1, 
+          total: 3, 
+          quality: 0, 
+          status: 'scanning',
+          message: `Place finger firmly on scanner...`
         });
-        
-        if (response.data.success) {
-          return response.data;
-        }
-        
-        // If it's a scanner disconnect, wait and retry
-        if (response.data.error === 'NoReader' && attempt < maxRetries) {
-          console.log(`⚠️ Scanner disconnected, retrying scan ${scanNumber} (attempt ${attempt + 1})...`);
-          if (this.onProgress) {
-            this.onProgress({ 
-              current: scanNumber - 1, 
-              total: 3, 
-              quality: 0, 
-              status: 'scanning',
-              message: `Reconnecting scanner... Retry ${attempt + 1}`
-            });
-          }
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
-        }
-        
-        throw new Error(response.data.message);
-      } catch (error) {
-        if (attempt === maxRetries) {
-          return { success: false, error: error.message };
-        }
-        await new Promise(r => setTimeout(r, 1000));
       }
+      
+      const response = await axios.post(`${this.backendUrl}/capture-single`, {}, {
+        timeout: 15000
+      });
+      
+      if (response.data.success) {
+        return {
+          success: true,
+          template: response.data.template,
+          hash: response.data.hash,
+          quality: response.data.quality
+        };
+      }
+      throw new Error(response.data.message);
+    } catch (error) {
+      return { success: false, error: error.message };
     }
-    
-    return { success: false, error: 'Max retries exceeded' };
   }
 
   async captureFingerprint() {
@@ -159,6 +138,19 @@ class FingerprintService {
         error: error.message,
         message: 'Failed to capture fingerprint. Please try again.'
       };
+    }
+  }
+
+  // Check if finger is present on scanner
+  async checkFingerPresent() {
+    try {
+      // Quick check without full capture
+      const response = await axios.get(`${this.backendUrl}/check-finger`, {
+        timeout: 1000
+      });
+      return { fingerDetected: response.data.detected };
+    } catch (error) {
+      return { fingerDetected: false };
     }
   }
 

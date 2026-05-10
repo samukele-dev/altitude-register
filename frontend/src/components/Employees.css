@@ -1,0 +1,274 @@
+.employees-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.employees-header {
+  margin-bottom: 2rem;
+}
+
+.employees-header h1 {
+  font-size: 1.875rem;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.employees-header p {
+  color: #6b7280;
+}
+
+.filters-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  ring: 2px solid #4f46e5;
+}
+
+.filter-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+  min-width: 150px;
+}
+
+.refresh-btn {
+  padding: 0.75rem 1.5rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.refresh-btn:hover {
+  background: #4338ca;
+}
+
+.employees-table-container {
+  background: white;
+  border-radius: 1rem;
+  overflow-x: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.employees-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.employees-table th,
+.employees-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.employees-table th {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.employees-table tr:hover {
+  background: #f9fafb;
+}
+
+.badge-campaign {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #e0e7ff;
+  color: #4338ca;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-team {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  background: #dcfce7;
+  color: #15803d;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge.inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn, .delete-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  background: #e0e7ff;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #9ca3af;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 1rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-body .form-group {
+  margin-bottom: 1rem;
+}
+
+.modal-body label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.modal-body input,
+.modal-body select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.save-btn {
+  padding: 0.5rem 1rem;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.save-btn:hover {
+  background: #4338ca;
+}
+
+@media (max-width: 768px) {
+  .employees-container {
+    padding: 1rem;
+  }
+  
+  .filters-bar {
+    flex-direction: column;
+  }
+  
+  .filter-select {
+    width: 100%;
+  }
+}

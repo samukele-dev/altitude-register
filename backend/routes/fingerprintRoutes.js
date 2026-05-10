@@ -12,6 +12,17 @@ router.get('/status', async (req, res) => {
   }
 });
 
+router.get('/check-finger', async (req, res) => {
+  try {
+    // Quick check if finger is on scanner
+    // This uses the NetIQ service's status endpoint
+    const result = await fingerprintService.checkFingerPresent();
+    res.json({ detected: result });
+  } catch (error) {
+    res.json({ detected: false });
+  }
+});
+
 // Capture single fingerprint scan (for multi-scan process)
 router.post('/capture-single', async (req, res) => {
   try {
