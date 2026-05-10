@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Backend
 backend/node_modules/
 backend/serviceAccountKey.json
@@ -17,6 +18,8 @@ Thumbs.db
 .vscode/
 .idea/
 
+=======
+>>>>>>> d6d4f804 (gitignore file modified)
 # NEVER commit these files!
 *.key
 *.pem
